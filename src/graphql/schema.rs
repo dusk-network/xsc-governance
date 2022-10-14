@@ -32,13 +32,12 @@ impl QueryRoot {
             let mut stmt =
                 con.prepare("SELECT rowid, * FROM Transfers WHERE block_height = (?)")?;
 
-            info!("Fetching block with block_height {}", height);
-
             let transfers = stmt.query_map([height], |row| {
-                print!("te");
-                let x = Transfer::try_from(row);
-                println!("{:?}", x);
-                x
+                let val = Transfer::try_from(row);
+
+                info!("Fetched block with block_height {}", height);
+
+                val
             })?;
 
             return Ok(transfers.flatten().collect());
@@ -72,7 +71,6 @@ impl QueryRoot {
             };
         }
 
-        println!("{:?}", block_height);
         Ok(Vec::new())
     }
 }

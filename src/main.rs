@@ -37,9 +37,6 @@ async fn main() {
         .data(sqlite)
         .finish();
 
-    let x = schema.execute("{ transfer(blockHeight: 1) }").await;
-    println!("{}", x.data);
-
     let app = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .layer(Extension(schema));
