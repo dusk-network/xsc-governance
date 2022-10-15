@@ -4,26 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Stack
-async-graphql = "4.0.15"
-async-graphql-axum = "4.0.15"
-tokio = { version = "1.8", features = ["macros", "rt-multi-thread"] }
-hyper = "0.14"
-axum = { version = "0.5.1", features = ["headers"] }
-
-# Timestamp
-tai64 = "4.0.0"
-
-# Database
-rusqlite = { version = "0.28.0", features = ["blob"] }
-r2d2_sqlite = "0.21.0"
-r2d2 = "0.8.10"
-
-# Logging
-tracing = "0.1.37"
-
-# Misc
-dotenv = "0.15.0"
-dotenv_codegen = "0.15.0"
-env_logger = "0.9.1"
-serde = "1.0.145"
+csv = "1.1.6"
+serde = { version = "1", features = ["derive"] }

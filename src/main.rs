@@ -1,51 +1,21 @@
-#[macro_use]
-extern crate dotenv_codegen;
-/// Graphql configuration goes here. The schema, queries and mutations.
-mod graphql;
-/// Data structures which are sent over the wire and the database.
 mod models;
 
-use crate::graphql::{graphiql, graphql_handler, schema::QueryRoot};
+use crate::models::Username;
+use csv::StringRecord;
 
-use async_graphql::*;
-use axum::{extract::Extension, routing::get, Router, Server};
-use dotenv::dotenv;
-use r2d2::{Pool, PooledConnection};
-use r2d2_sqlite::SqliteConnectionManager;
-use tracing::info;
+use csv::Reader;
 
-pub type SqliteConnection = PooledConnection<SqliteConnectionManager>;
+fn main() {
+    let mut usernames = Reader::from_path("username.csv").expect("Cannot read file");
 
-async fn sqlite() -> Result<Pool<SqliteConnectionManager>> {
-    let manager = SqliteConnectionManager::file(dotenv!("SQLITE_DB"));
-    let pool = r2d2::Pool::new(manager)?;
+    let mut vec: Vec<Username> = Vec::new();
 
-    Ok(pool)
-}
+    let header = StringRecord::from(vec!["username", "identifier", "first_name", "last_name"]);
 
-#[tokio::main]
-async fn main() {
-    env_logger::init();
-
-    dotenv().ok();
-
-    let sqlite = sqlite().await.expect("cannot connect to sqlite");
-
-    info!("Connected to sqlite at: {}", dotenv!("SQLITE_DB"));
-
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
-        .data(sqlite)
-        .finish();
-
-    let app = Router::new()
-        .route("/", get(graphiql).post(graphql_handler))
-        .layer(Extension(schema));
-
-    info!("GraphiQL IDE at: http://{}", dotenv!("GRAPHQL_ENDPOINT"));
-    info!("Starting server at: {}", dotenv!("GRAPHQL_ENDPOINT"));
-
-    Server::bind(&dotenv!("GRAPHQL_ENDPOINT").parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    for result in usernames.records() {
+        let record = result.unwrap();
+        println!("{:?}", record);
+        let username: Username = record.deserialize(Some(&header)).unwrap();
+        vec.push(username);
+    }
 }
