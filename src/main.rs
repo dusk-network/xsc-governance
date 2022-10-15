@@ -1,21 +1,16 @@
+mod csv_parser;
 mod models;
 
-use crate::models::Username;
-use csv::StringRecord;
+use crate::csv_parser::CsvParser;
+use crate::models::Data;
+use csv::Result;
 
-use csv::Reader;
+fn main() -> Result<()> {
+    let usernames: Vec<Data> = CsvParser::from_path("username.csv")?
+        .headers(vec!["city", "country", "pop_count"])
+        .parse()?;
 
-fn main() {
-    let mut usernames = Reader::from_path("username.csv").expect("Cannot read file");
+    assert_eq!(usernames[0].city, "Boston");
 
-    let mut vec: Vec<Username> = Vec::new();
-
-    let header = StringRecord::from(vec!["username", "identifier", "first_name", "last_name"]);
-
-    for result in usernames.records() {
-        let record = result.unwrap();
-        println!("{:?}", record);
-        let username: Username = record.deserialize(Some(&header)).unwrap();
-        vec.push(username);
-    }
+    Ok(())
 }
