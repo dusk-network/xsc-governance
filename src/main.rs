@@ -2,15 +2,20 @@ mod csv_parser;
 mod models;
 
 use crate::csv_parser::CsvParser;
-use crate::models::Data;
+use crate::models::*;
+
 use csv::Result;
 
 fn main() -> Result<()> {
-    let usernames: Vec<Data> = CsvParser::from_path("username.csv")?
-        .headers(vec!["city", "country", "pop_count"])
+    let usernames: Vec<Activity> = CsvParser::from_path("activity.csv")?
+        .headers(vec!["sender", "buyer", "amount", "timestamp"])
         .parse()?;
 
-    assert_eq!(usernames[0].city, "Boston");
+    let ty: Vec<Whitelist> = CsvParser::from_path("whitelist.csv")?
+        .headers(vec!["Add", "Remove"])
+        .parse_enum()?;
+
+    println!("{:?}", ty);
 
     Ok(())
 }
