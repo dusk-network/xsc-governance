@@ -1,10 +1,13 @@
+use core::mem::size_of;
+
 use std::io;
 
 use csv::StringRecord;
 use serde::{Deserialize, Deserializer};
 use tai64::Tai64;
 
-type Address = [u8; 128];
+#[derive(Debug)]
+pub struct Address(pub [u8; 64]);
 
 #[derive(Deserialize, Debug)]
 pub struct Activity {
@@ -24,6 +27,18 @@ pub enum Whitelist {
     None,
 }
 
+impl Address {
+    pub fn buffer() -> [u8; size_of::<Address>()] {
+        [0; size_of::<Address>()]
+    }
+}
+
+impl Default for Address {
+    fn default() -> Self {
+        Self(Self::buffer())
+    }
+}
+
 impl TryFrom<StringRecord> for Whitelist {
     type Error = io::Error;
 
@@ -32,7 +47,7 @@ impl TryFrom<StringRecord> for Whitelist {
         let variant = record.get(0);
         let value = record.get(1);
 
-        let mut buffer: Address = [0; 128];
+        let mut buffer = [0; size_of::<Address>()];
 
         match (variant, value) {
             (Some(b"add"), Some(x)) => {
@@ -43,7 +58,9 @@ impl TryFrom<StringRecord> for Whitelist {
                     )
                 })?;
 
-                Ok(Whitelist::Add { address: buffer })
+                Ok(Whitelist::Add {
+                    address: Address(buffer),
+                })
             }
             (Some(b"remove"), Some(x)) => {
                 bs58::decode(x).into(&mut buffer).map_err(|_| {
@@ -53,7 +70,9 @@ impl TryFrom<StringRecord> for Whitelist {
                     )
                 })?;
 
-                Ok(Whitelist::Remove { address: buffer })
+                Ok(Whitelist::Remove {
+                    address: Address(buffer),
+                })
             }
             _ => Ok(Whitelist::None),
         }
@@ -67,13 +86,13 @@ where
     use serde::de::Error;
 
     let s: &str = Deserialize::deserialize(deserializer)?;
-    let mut buffer: Address = [0; 128];
+    let mut buffer = Address::buffer();
 
     bs58::decode(s)
         .into(&mut buffer)
         .map_err(D::Error::custom)?;
 
-    Ok(buffer)
+    Ok(Address(buffer))
 }
 
 fn to_tai64<'de, D>(deserializer: D) -> Result<Tai64, D::Error>
