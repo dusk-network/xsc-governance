@@ -9,13 +9,14 @@ use csv::Result;
 #[command(author, version, about, long_about = None)]
 #[command(propagate_version = true)]
 struct Args {
-    /// Name of the person to greet
+    /// CSV Data to parse
     #[command(subcommand)]
     command: Command,
 }
 
 #[derive(Subcommand, Debug)]
 enum Command {
+    ///
     Activity {
         #[clap(short, long)]
         path: String,
