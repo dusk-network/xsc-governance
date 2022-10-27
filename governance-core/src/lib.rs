@@ -14,38 +14,98 @@ use dusk_abi::ContractId;
 use dusk_bytes::Serializable;
 use dusk_pki::PublicSpendKey;
 use dusk_wallet::{SecureWalletFile, TransportTCP, Wallet};
+use dusk_wallet_core::{ProverClient, StateClient, Store};
 use rand::rngs::ThreadRng;
 use toml_base_config::BaseConfig;
 use tracing::info;
 
-pub async fn send<F, T>(data: T) -> Result<(), dusk_wallet::Error>
+/// Sock implementation for SecureWallet because we cannot construct a
+/// dusk_wallet::Wallet instance without an `T: SecureWallet`
+#[derive(Debug)]
+struct SecureWallet {}
+
+pub async fn send_call<C, F>(call: F) -> Result<(), dusk_wallet::Error>
 where
-    T: Canon,
-    F: Debug + SecureWalletFile,
+    C: Canon,
+    F: Fn(Address, Address) -> C,
 {
-    let config = Config::load()?;
-    let mut wallet = Wallet::<F>::new(config.mnemonic)?;
-    let transport_tcp = TransportTCP::new(config.rusk_address, config.prover_address);
+    let Config {
+        mnemonic,
+        contract_id,
+        rusk_address,
+        prover_address,
+        sender_index,
+        refund,
+        gas_limit,
+        gas_price,
+    } = Config::load()?;
+
+    let mut wallet = Wallet::<SecureWallet>::new(mnemonic)?;
+    let transport_tcp = TransportTCP::new(rusk_address, prover_address);
 
     wallet
         .connect_with_status(transport_tcp, |s| info!("Status: {}", s))
         .await?;
 
     if let Some(core_wallet) = wallet.get_wallet() {
-        let mut thread_rng = ThreadRng::default();
-        let contract_id = ContractId::from_raw(config.contract_id);
-        let refund = PublicSpendKey::from_bytes(&config.refund.0)?;
+        // TODO: Decide caller and signature
+        let caller = Default::default();
+        let signature = Default::default();
 
-        core_wallet.execute(
-            &mut thread_rng,
+        send(
+            call(caller, signature),
+            core_wallet,
             contract_id,
-            data,
-            config.sender_index,
-            &refund,
-            config.gas_limit,
-            config.gas_price,
-        )?;
+            sender_index,
+            refund,
+            gas_limit,
+            gas_price,
+        )
+        .await?;
     }
 
+    Err(dusk_wallet::Error::WalletFileMissing)
+}
+
+pub async fn send<C, S, SC, PC>(
+    data: C,
+    core_wallet: &dusk_wallet_core::Wallet<S, SC, PC>,
+    contract_id: [u8; 32],
+    sender_index: u64,
+    refund: Address,
+    gas_limit: u64,
+    gas_price: u64,
+) -> Result<(), dusk_wallet::Error>
+where
+    C: Canon,
+    S: Store,
+    SC: StateClient,
+    PC: ProverClient,
+    dusk_wallet::Error: From<dusk_wallet_core::Error<S, SC, PC>>,
+{
+    let mut thread_rng = ThreadRng::default();
+    let contract_id = ContractId::from_raw(contract_id);
+    let refund = PublicSpendKey::from_bytes(&refund.0)?;
+
+    core_wallet.execute(
+        &mut thread_rng,
+        contract_id,
+        data,
+        sender_index,
+        &refund,
+        gas_limit,
+        gas_price,
+    )?;
+
     Ok(())
+}
+
+impl SecureWalletFile for SecureWallet {
+    fn path(&self) -> &dusk_wallet::WalletPath {
+        unimplemented!()
+    }
+
+    fn pwd(&self) -> blake3::Hash {
+        unimplemented!()
+    }
 }

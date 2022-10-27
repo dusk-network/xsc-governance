@@ -9,3 +9,4 @@ edition = "2021"
 governance-core = { path = "../governance-core" }
 csv = "1.1.6"
 clap = { version = "4.0.18", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
