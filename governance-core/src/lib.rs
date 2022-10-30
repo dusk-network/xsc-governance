@@ -99,12 +99,15 @@ where
     Ok(())
 }
 
+// Both methods are unreachable because Wallet requires a F: SecureWalletFile to
+// be passed when creating an instance even without a wallet file. These methods
+// will not be called otherwise.
 impl SecureWalletFile for SecureWallet {
     fn path(&self) -> &dusk_wallet::WalletPath {
-        unimplemented!()
+        unreachable!()
     }
 
     fn pwd(&self) -> blake3::Hash {
-        unimplemented!()
+        unreachable!()
     }
 }
