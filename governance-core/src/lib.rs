@@ -20,7 +20,7 @@ use toml_base_config::BaseConfig;
 use tracing::info;
 
 /// Sock implementation for SecureWallet because we cannot construct a
-/// dusk_wallet::Wallet instance without an `T: SecureWallet`
+/// dusk_wallet::Wallet instance without an `T: SecureWalletFile`
 #[derive(Debug)]
 struct SecureWallet {}
 
@@ -70,7 +70,7 @@ where
 pub async fn send<C, S, SC, PC>(
     data: C,
     core_wallet: &dusk_wallet_core::Wallet<S, SC, PC>,
-    contract_id: [u8; 32],
+    contract_id: ContractId,
     sender_index: u64,
     refund: Address,
     gas_limit: u64,
@@ -84,7 +84,6 @@ where
     dusk_wallet::Error: From<dusk_wallet_core::Error<S, SC, PC>>,
 {
     let mut thread_rng = ThreadRng::default();
-    let contract_id = ContractId::from_raw(contract_id);
     let refund = PublicSpendKey::from_bytes(&refund.0)?;
 
     core_wallet.execute(
