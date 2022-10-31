@@ -1,24 +1,23 @@
-use crate::activity::Activity;
-use crate::Address;
-
 use std::io;
 use std::mem::size_of;
 
 use canonical::{Canon, CanonError, Sink, Source};
 use csv::StringRecord;
+use dusk_bytes::Serializable;
+use dusk_pki::PublicKey;
 
 #[derive(Debug, Clone)]
 pub struct WhitelistCall {
-    pub caller: Address,
-    pub signature: Address,
+    pub caller: PublicKey,
+    pub signature: PublicKey,
     pub count: usize,
     pub whitelist: Vec<u8>,
 }
 
 #[derive(Debug)]
 pub enum Whitelist {
-    Add { address: Address },
-    Remove { address: Address },
+    Add { address: PublicKey },
+    Remove { address: PublicKey },
     None,
 }
 
@@ -26,18 +25,18 @@ impl WhitelistCall {
     const OPERATION_IDENTIFIER: u8 = 0x01;
 }
 
-impl<'a> From<&'a Whitelist> for [u8; size_of::<Activity>()] {
+impl<'a> From<&'a Whitelist> for [u8; size_of::<Whitelist>()] {
     fn from(whitelist: &'a Whitelist) -> Self {
-        let mut buffer = [0u8; size_of::<Activity>()];
+        let mut buffer = [0u8; size_of::<Whitelist>()];
 
         match whitelist {
             Whitelist::Add { address } => {
                 buffer[0..1].copy_from_slice(&0_i32.to_le_bytes());
-                buffer[1..].copy_from_slice(&address.0);
+                buffer[1..].copy_from_slice(&address.to_bytes());
             }
             Whitelist::Remove { address } => {
                 buffer[0..1].copy_from_slice(&1_i32.to_le_bytes());
-                buffer[1..].copy_from_slice(&address.0);
+                buffer[1..].copy_from_slice(&address.to_bytes());
             }
             _ => (),
         }
@@ -54,7 +53,7 @@ impl TryFrom<StringRecord> for Whitelist {
         let variant = record.get(0);
         let value = record.get(1);
 
-        let mut buffer = [0; size_of::<Address>()];
+        let mut buffer = [0; 32];
 
         match (variant, value) {
             (Some(b"add"), Some(x)) => {
@@ -66,7 +65,12 @@ impl TryFrom<StringRecord> for Whitelist {
                 })?;
 
                 Ok(Whitelist::Add {
-                    address: Address(buffer),
+                    address: PublicKey::from_bytes(&buffer).map_err(|_| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!("Cannot convert bytes to public key {:?}", buffer),
+                        )
+                    })?,
                 })
             }
             (Some(b"remove"), Some(x)) => {
@@ -78,7 +82,12 @@ impl TryFrom<StringRecord> for Whitelist {
                 })?;
 
                 Ok(Whitelist::Remove {
-                    address: Address(buffer),
+                    address: PublicKey::from_bytes(&buffer).map_err(|_| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            format!("Cannot convert bytes to public key {:?}", buffer),
+                        )
+                    })?,
                 })
             }
             _ => Ok(Whitelist::None),
@@ -86,15 +95,16 @@ impl TryFrom<StringRecord> for Whitelist {
     }
 }
 
+/// TODO: Fuzz this
 impl Canon for WhitelistCall {
     fn encode(&self, sink: &mut Sink<'_>) {
-        let mut bytes = [0; size_of::<WhitelistCall>()];
+        let mut bytes = Vec::new();
 
-        bytes[0..64].copy_from_slice(&self.caller.0);
-        bytes[64..128].copy_from_slice(&self.signature.0);
-        bytes[128..129].copy_from_slice(&Self::OPERATION_IDENTIFIER.to_le_bytes());
-        bytes[129..137].copy_from_slice(&self.count.to_le_bytes());
-        bytes[137..].copy_from_slice(&self.whitelist);
+        bytes[0..32].copy_from_slice(&self.caller.to_bytes());
+        bytes[32..64].copy_from_slice(&self.signature.to_bytes());
+        bytes[64..65].copy_from_slice(&Self::OPERATION_IDENTIFIER.to_le_bytes());
+        bytes[65..73].copy_from_slice(&self.count.to_le_bytes());
+        bytes[73..].copy_from_slice(&self.whitelist);
 
         sink.copy_bytes(&bytes)
     }
@@ -105,25 +115,26 @@ impl Canon for WhitelistCall {
             .try_into()
             .map_err(|_| CanonError::InvalidEncoding)?;
 
-        let mut caller = [0; 64];
-        let mut signature = [0; 64];
+        let mut caller = [0; 32];
+        let mut signature = [0; 32];
         let mut count = [0; 8];
         let mut whitelist = Vec::new();
 
-        caller.copy_from_slice(&all_bytes[0..64]);
-        signature.copy_from_slice(&all_bytes[64..128]);
-        count.copy_from_slice(&all_bytes[129..137]);
-        whitelist.copy_from_slice(&all_bytes[137..]);
+        caller.copy_from_slice(&all_bytes[0..32]);
+        signature.copy_from_slice(&all_bytes[32..64]);
+        count.copy_from_slice(&all_bytes[65..73]);
+        whitelist.copy_from_slice(&all_bytes[73..]);
 
         Ok(Self {
-            caller: Address(caller),
-            signature: Address(signature),
+            caller: PublicKey::from_bytes(&caller).map_err(|_| CanonError::InvalidEncoding)?,
+            signature: PublicKey::from_bytes(&signature)
+                .map_err(|_| CanonError::InvalidEncoding)?,
             count: usize::from_le_bytes(count),
             whitelist,
         })
     }
 
     fn encoded_len(&self) -> usize {
-        137 + self.whitelist.len()
+        size_of::<Self>()
     }
 }
