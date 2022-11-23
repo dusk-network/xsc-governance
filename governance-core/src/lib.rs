@@ -1,8 +1,6 @@
 pub mod config;
-pub mod csv_parser;
 pub mod models;
 
-pub use csv_parser::CsvParser;
 pub use models::*;
 
 use crate::config::Config;
