@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use canonical::Canon;
 use dusk_abi::ContractId;
 use dusk_bytes::Serializable;
-use dusk_pki::{PublicKey, PublicSpendKey};
+use dusk_pki::{PublicSpendKey};
 use dusk_wallet::{SecureWalletFile, TransportTCP, Wallet};
 use dusk_wallet_core::{ProverClient, StateClient, Store};
 use rand::rngs::ThreadRng;
@@ -22,10 +22,9 @@ use tracing::info;
 #[derive(Debug)]
 struct SecureWallet {}
 
-pub async fn send_call<C, F>(call: F) -> Result<(), dusk_wallet::Error>
+pub async fn send_data<C>(data: C) -> Result<(), dusk_wallet::Error>
 where
     C: Canon,
-    F: Fn(PublicKey, PublicKey) -> C,
 {
     let Config {
         mnemonic,
@@ -46,12 +45,8 @@ where
         .await?;
 
     if let Some(core_wallet) = wallet.get_wallet() {
-        // TODO: Decide caller and signature
-        let caller = PublicKey::from_bytes(&Default::default())?;
-        let signature = PublicKey::from_bytes(&Default::default())?;
-
         send(
-            call(caller, signature),
+            data,
             core_wallet,
             contract_id,
             sender_index,

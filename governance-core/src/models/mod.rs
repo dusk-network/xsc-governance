@@ -56,11 +56,18 @@ mod tests {
 
     use std::str::FromStr;
 
-    use chrono::DateTime;
+    use chrono::{DateTime, Utc};
+    use tai64::Tai64;
 
     #[test]
     fn json_from_file() {
         let file = json_file(concat!("../assets/data.json")).expect("Cannot parse file");
+
+        let timestamp = Tai64::from_unix(
+            DateTime::<Utc>::from_str("2022-09-26T12:00:00Z")
+                .expect("Cannot convert timestamp to datetime")
+                .timestamp(),
+        );
 
         assert_eq!(
             file,
@@ -68,38 +75,38 @@ mod tests {
                 String::from("TestAccount1"),
                 Events {
                     events: vec![Event {
-                        occurrence: DateTime::from_str("2022-09-26T12:00:00Z").unwrap(),
+                        occurrence: timestamp.0,
                         cause: Cause::Rebalance,
                         changes: vec![
                             Change {
                                 change_type: ChangeType::Cash,
-                                size: -99814.8,
+                                size: (-99814.8f64).to_le_bytes(),
                                 security_definition: SecurityDefinition::None,
-                                price: 1.0,
+                                price: 1.0f64.to_le_bytes(),
                             },
                             Change {
                                 change_type: ChangeType::Security,
-                                size: 984.0,
+                                size: 984.0f64.to_le_bytes(),
                                 security_definition: SecurityDefinition::TSWE,
-                                price: 25.36,
+                                price: 25.36f64.to_le_bytes(),
                             },
                             Change {
                                 change_type: ChangeType::Security,
-                                size: 681.0,
+                                size: 681.0f64.to_le_bytes(),
                                 security_definition: SecurityDefinition::TRET,
-                                price: 36.65,
+                                price: 36.65f64.to_le_bytes(),
                             },
                             Change {
                                 change_type: ChangeType::Security,
-                                size: 2131.0,
+                                size: 2131.0f64.to_le_bytes(),
                                 security_definition: SecurityDefinition::TGBT,
-                                price: 11.71,
+                                price: 11.71f64.to_le_bytes(),
                             },
                             Change {
                                 change_type: ChangeType::Security,
-                                size: 1585.0,
+                                size: 1585.0f64.to_le_bytes(),
                                 security_definition: SecurityDefinition::TCBT,
-                                price: 15.74,
+                                price: 15.74f64.to_le_bytes(),
                             }
                         ]
                     }]
