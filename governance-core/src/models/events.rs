@@ -31,11 +31,12 @@ pub struct Change {
     #[serde(rename = "type")]
     pub change_type: ChangeType,
     #[serde(deserialize_with = "to_float_bytes")]
-    pub size: [u8; 8],
+    // convert o u64
+    pub size: u64,
     #[serde(rename = "securityDefinition")]
-    pub security_definition: SecurityDefinition,
+    pub security_definition: String,
     #[serde(deserialize_with = "to_float_bytes")]
-    pub price: [u8; 8],
+    pub price: u64,
 }
 
 #[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
@@ -44,22 +45,14 @@ pub enum ChangeType {
     Security,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
-pub enum SecurityDefinition {
-    TSWE,
-    TRET,
-    TGBT,
-    TCBT,
-    None,
-}
-
-fn to_float_bytes<'de, D>(deserializer: D) -> Result<[u8; 8], D::Error>
+fn to_float_bytes<'de, D>(deserializer: D) -> Result<u64, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s: f64 = Deserialize::deserialize(deserializer)?;
+    let x = s * 1000000.0;
 
-    Ok(s.to_le_bytes())
+    Ok(x as u64)
 }
 
 fn to_tai64_timestamp<'de, D>(deserializer: D) -> Result<u64, D::Error>

@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use canonical::Canon;
 use dusk_abi::ContractId;
 use dusk_bytes::Serializable;
-use dusk_pki::{PublicSpendKey};
+use dusk_pki::PublicSpendKey;
 use dusk_wallet::{SecureWalletFile, TransportTCP, Wallet};
 use dusk_wallet_core::{ProverClient, StateClient, Store};
 use rand::rngs::ThreadRng;
