@@ -31,7 +31,6 @@ pub struct Change {
     #[serde(rename = "type")]
     pub change_type: ChangeType,
     #[serde(deserialize_with = "to_float_bytes")]
-    // convert o u64
     pub size: u64,
     #[serde(rename = "securityDefinition")]
     pub security_definition: String,
