@@ -1,10 +1,13 @@
 use std::fs::File;
 use std::io::{self, BufReader, Error as IoError, ErrorKind as IoErrorKind, Read};
+use std::iter;
 use std::mem::size_of;
 use std::path::Path;
 
 use canonical_derive::Canon;
+use dusk_bls12_381::BlsScalar;
 use dusk_pki::{PublicKey, SecretKey};
+use governance_contract::Transfer;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde_json::Value;
@@ -12,14 +15,6 @@ use serde_json::Value;
 use self::events::*;
 
 pub mod events;
-
-#[derive(Debug, Clone, Canon, PartialEq, Eq)]
-pub struct Transfer {
-    pub from: PublicKey,
-    pub to: PublicKey,
-    pub amount: u64,
-    pub timestamp: u64,
-}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Address(pub [u8; 64]);
@@ -36,7 +31,7 @@ impl Default for Address {
     }
 }
 
-/// Parse a json file, return (account_name, Events)
+/// Parse a json file, convert them to Vec<Transfer>
 pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<Vec<Transfer>> {
     let mut data = String::new();
     let f = File::open(path.as_ref())?;
@@ -47,7 +42,7 @@ pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<Vec<Transfer>> {
     json_bytes(data.as_bytes())
 }
 
-/// Parse raw json bytes, return (account_name, Events)
+/// Parse raw json bytes convert them to Vec<Transfer>
 pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Vec<Transfer>> {
     let json: Value = serde_json::from_slice(bytes.as_ref())?;
 
@@ -174,10 +169,5 @@ mod tests {
                 )
             }
         }
-        let timestamp = Tai64::from_unix(
-            DateTime::<Utc>::from_str("2022-09-26T12:00:00Z")
-                .expect("Cannot convert timestamp to datetime")
-                .timestamp(),
-        );
     }
 }

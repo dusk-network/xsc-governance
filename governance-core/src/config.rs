@@ -6,8 +6,6 @@ use toml_base_config::BaseConfig;
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct Config {
-    // TODO: Don't store mnemonic in config file
-    pub mnemonic: String,
     #[serde(deserialize_with = "to_contract", serialize_with = "from_contract")]
     pub contract_id: ContractId,
     pub rusk_address: String,
