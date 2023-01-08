@@ -1,6 +1,7 @@
 use crate::models::Address;
 
 use dusk_abi::ContractId;
+use dusk_wallet::{SecureWalletFile, WalletPath};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use toml_base_config::BaseConfig;
 
@@ -15,6 +16,22 @@ pub struct Config {
     pub refund: Address,
     pub gas_limit: u64,
     pub gas_price: u64,
+}
+
+#[derive(Debug)]
+pub struct SecureWallet {
+    pub path: WalletPath,
+    pub pwd: String,
+}
+
+impl SecureWalletFile for SecureWallet {
+    fn path(&self) -> &WalletPath {
+        &self.path
+    }
+
+    fn pwd(&self) -> blake3::Hash {
+        blake3::hash(self.pwd.as_bytes())
+    }
 }
 
 fn to_key<'de, D>(deserializer: D) -> Result<Address, D::Error>
