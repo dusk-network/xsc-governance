@@ -9,6 +9,7 @@ pub use self::address::*;
 pub use self::events::*;
 pub use self::transfer::*;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufReader, Error as IoError, ErrorKind as IoErrorKind, Read};
 use std::path::Path;
@@ -18,8 +19,10 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde_json::Value;
 
+pub type Transfers = HashMap<SecurityDefinition, Vec<Transfer>>;
+
 /// Parse a json file, convert them to Vec<Transfer>
-pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<Vec<Transfer>> {
+pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<Transfers> {
     let mut data = String::new();
     let f = File::open(path.as_ref())?;
 
@@ -30,7 +33,7 @@ pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<Vec<Transfer>> {
 }
 
 /// Parse raw json bytes convert them to Vec<Transfer>
-pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Vec<Transfer>> {
+pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Transfers> {
     let json: Value = serde_json::from_slice(bytes.as_ref())?;
 
     if let Value::Object(obj) = json {
@@ -38,7 +41,7 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Vec<Transfer>> {
 
         if let Some((account_name, events)) = account.next() {
             let events: Events = serde_json::from_value(events)?;
-            let mut transfers = Vec::new();
+            let mut transfers: Transfers = HashMap::new();
 
             for event in events.events {
                 let timestamp = event.occurrence;
@@ -51,12 +54,9 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Vec<Transfer>> {
                             let to = public_key(change.security_definition.to_string());
                             let amount = change.size;
 
-                            // Deposit only works with cash
-                            if change.security_definition != SecurityDefinition::Cash {
-                                // TODO: Throw error here
-                            }
+                            let vec = transfers.get_mut(&SecurityDefinition::Cash).unwrap();
 
-                            transfers.push(Transfer {
+                            vec.push(Transfer {
                                 from,
                                 to,
                                 amount,

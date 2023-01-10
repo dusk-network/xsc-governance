@@ -47,7 +47,7 @@ pub enum ChangeType {
 }
 
 // Contract IDs are specified for each Security as they are smart contracts
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Canon, Hash, PartialEq, Eq, Deserialize)]
 pub enum SecurityDefinition {
     Cash = 0x1000,
     #[serde(rename = "TSWE")]
