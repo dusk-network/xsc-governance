@@ -17,7 +17,7 @@ use canonical::EncodeToVec;
 use dusk_abi::ContractId;
 use dusk_bls12_381::BlsScalar;
 use dusk_bytes::Serializable;
-use dusk_wallet::{TransportTCP,gas::Gas, Wallet};
+use dusk_wallet::{gas::Gas, TransportTCP, Wallet};
 use toml_base_config::BaseConfig;
 use tracing::info;
 
@@ -93,13 +93,7 @@ impl Governance {
             data.extend(transfer.encode_to_vec());
 
             if wallet.is_online() {
-                    send(
-                        data,
-                        &wallet,
-                        contract_id,
-                        gas
-                        
-                    ).await?;
+                send(data, &wallet, contract_id, gas).await?;
             }
         }
 
@@ -112,18 +106,12 @@ pub async fn send(
     wallet: &Wallet<SecureWallet>,
     contract_id: ContractId,
     gas: Gas,
-) -> Result<(), dusk_wallet::Error>
-{
+) -> Result<(), dusk_wallet::Error> {
     // TODO: Make sure this is correct
     let sender = wallet.default_address();
 
     // finish sending data to blockchain
-    wallet.execute(
-        sender,
-        contract_id,
-        data,
-        gas
-    ).await?;
+    wallet.execute(sender, contract_id, data, gas).await?;
 
     Ok(())
 }
