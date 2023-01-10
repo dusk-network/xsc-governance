@@ -17,10 +17,7 @@ use canonical::EncodeToVec;
 use dusk_abi::ContractId;
 use dusk_bls12_381::BlsScalar;
 use dusk_bytes::Serializable;
-use dusk_pki::PublicSpendKey;
-use dusk_wallet::{TransportTCP, Wallet};
-use dusk_wallet_core::{ProverClient, StateClient, Store};
-use rand::rngs::ThreadRng;
+use dusk_wallet::{TransportTCP,gas::Gas, Wallet};
 use toml_base_config::BaseConfig;
 use tracing::info;
 
@@ -62,7 +59,6 @@ impl Governance {
         let Config {
             rusk_address,
             prover_address,
-            sender_index,
             gas_limit,
             gas_price,
         } = Config::load()?;
@@ -76,6 +72,12 @@ impl Governance {
             .await?;
 
         for (contract, transfer) in self.data {
+            let mut gas = Gas::new(gas_limit);
+
+            if let Some(gas_price) = gas_price {
+                gas.set_price(gas_price);
+            }
+
             let contract_id = ContractId::reserved(contract as u8);
             let seed = Self::seed(&transfer);
             let scalars = Self::scalars(&transfer, seed);
@@ -91,16 +93,13 @@ impl Governance {
             data.extend(transfer.encode_to_vec());
 
             if wallet.is_online() {
-                if let Some(core_wallet) = wallet.get_wallet() {
                     send(
                         data,
-                        core_wallet,
+                        &wallet,
                         contract_id,
-                        sender_index,
-                        gas_limit,
-                        gas_price,
-                    )?;
-                }
+                        gas
+                        
+                    ).await?;
             }
         }
 
@@ -108,34 +107,23 @@ impl Governance {
     }
 }
 
-pub fn send<S, SC, PC>(
+pub async fn send(
     data: Vec<u8>,
-    core_wallet: &dusk_wallet_core::Wallet<S, SC, PC>,
+    wallet: &Wallet<SecureWallet>,
     contract_id: ContractId,
-    sender_index: u64,
-    gas_limit: u64,
-    gas_price: u64,
+    gas: Gas,
 ) -> Result<(), dusk_wallet::Error>
-where
-    S: Store,
-    SC: StateClient,
-    PC: ProverClient,
-    dusk_wallet::Error: From<dusk_wallet_core::Error<S, SC, PC>>,
 {
-    let mut thread_rng = ThreadRng::default();
-    // is this correct
-    let refund = core_wallet.public_spend_key(sender_index)?;
+    // TODO: Make sure this is correct
+    let sender = wallet.default_address();
 
     // finish sending data to blockchain
-    core_wallet.execute(
-        &mut thread_rng,
+    wallet.execute(
+        sender,
         contract_id,
         data,
-        sender_index,
-        &refund,
-        gas_limit,
-        gas_price,
-    )?;
+        gas
+    ).await?;
 
     Ok(())
 }

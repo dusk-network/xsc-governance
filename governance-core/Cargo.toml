@@ -20,8 +20,7 @@ blake3 = "1.3"
 blake2 = { version = "0.10", default-features = false }
 
 # Stack
-dusk-wallet = { git = "https://github.com/Daksh14/wallet-cli.git", branch = "wallet_method_test" }
-dusk-wallet-core = { git = "https://github.com/dusk-network/wallet-core.git" }
+dusk-wallet = { git = "https://github.com/dusk-network/wallet-cli.git", branch = "main" }
 rand = "0.8"
 dusk-pki = "0.10.0-rc.1"
 dusk-bytes = "0.1.6"

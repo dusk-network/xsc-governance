@@ -12,5 +12,4 @@ canonical = "0.7.1"
 dusk-bls12_381 = { version = "0.9", default-features = false, features = ["alloc", "pairings", "endo"] }
 blake2 = { version = "0.10", default-features = false }
 dusk-bytes = "0.1"
-dusk-wallet-core = { git = "https://github.com/dusk-network/wallet-core.git" }
-dusk-wallet = { git = "https://github.com/Daksh14/wallet-cli.git", branch = "wallet_method_test" }
+dusk-wallet = { git = "https://github.com/dusk-network/wallet-cli.git", branch = "main" }
