@@ -47,25 +47,27 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Transfers> {
                 let timestamp = event.occurrence;
 
                 match event.cause {
-                    Cause::Deposit => {
+                    Cause::Rebalance => {
                         let from = public_key(&account_name);
 
                         for change in event.changes {
                             let to = public_key(change.security_definition.to_string());
                             let amount = change.size;
 
-                            let vec = transfers.get_mut(&SecurityDefinition::Cash).unwrap();
+                            let transfer_list = transfers.get_mut(&SecurityDefinition::Cash);
 
-                            vec.push(Transfer {
-                                from,
-                                to,
-                                amount,
-                                timestamp,
-                            })
+                            if let Some(vec) = transfer_list {
+                                vec.push(Transfer {
+                                    from,
+                                    to,
+                                    amount,
+                                    timestamp,
+                                })
+                            }
                         }
                     }
                     // TODO: Finish other causes
-                    Cause::Rebalance => (),
+                    Cause::Deposit => (),
                     Cause::Withdraw => (),
                     Cause::Fee => (),
                 }
