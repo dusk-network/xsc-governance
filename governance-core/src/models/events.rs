@@ -4,8 +4,11 @@ use canonical::Canon;
 use canonical_derive::Canon;
 use chrono::DateTime;
 use chrono::Utc;
+use dusk_pki::PublicKey;
 use serde::{Deserialize, Deserializer};
 use tai64::Tai64;
+
+use super::public_key;
 
 #[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
 pub struct Events {
@@ -59,6 +62,12 @@ pub enum SecurityDefinition {
     #[serde(rename = "TCBT")]
     Tcbt = 0x1004,
     None = 0x000,
+}
+
+impl SecurityDefinition {
+    pub fn to_public_key(self) -> PublicKey {
+        public_key(self.to_string())
+    }
 }
 
 impl Display for SecurityDefinition {

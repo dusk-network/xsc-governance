@@ -71,13 +71,13 @@ impl Governance {
             .connect_with_status(transport_tcp, |s| info!("Status: {}", s))
             .await?;
 
-        for (contract, transfer) in self.data {
+        for (contract, transfer) in self.data.transfers() {
             let mut gas = Gas::new(gas_limit);
 
             if let Some(gas_price) = gas_price {
                 gas.set_price(gas_price);
             }
-
+            // get contract_id from security
             let contract_id = ContractId::reserved(contract as u8);
             let seed = Self::seed(&transfer);
             let scalars = Self::scalars(&transfer, seed);

@@ -7,18 +7,26 @@ use dusk_pki::PublicKey;
 // TODO: The same struct exists in the governance contract, do we just import that?
 #[derive(Debug, Clone, PartialEq, Eq, Canon)]
 pub struct Transfer {
-    pub from: PublicKey,
-    pub to: PublicKey,
+    pub to: Option<PublicKey>,
+    pub from: Option<PublicKey>,
     pub amount: u64,
     pub timestamp: u64,
 }
 
 impl Transfer {
     pub fn as_scalars(&self) -> impl Iterator<Item = BlsScalar> {
-        let from = self.from.as_ref().to_hash_inputs();
-        let to = self.from.as_ref().to_hash_inputs();
         let amount = BlsScalar::from(self.amount);
         let timestamp = BlsScalar::from(self.timestamp);
+
+        let from = self
+            .from
+            .map(|key| key.as_ref().to_hash_inputs())
+            .unwrap_or_default();
+
+        let to = self
+            .to
+            .map(|key| key.as_ref().to_hash_inputs())
+            .unwrap_or_default();
 
         iter::once(from)
             .chain(iter::once(to))

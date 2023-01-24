@@ -19,7 +19,68 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde_json::Value;
 
-pub type Transfers = HashMap<SecurityDefinition, Vec<Transfer>>;
+/// Type of the hashmap we use to store our Transfers
+type TransfersMap = HashMap<SecurityDefinition, Vec<Transfer>>;
+/// List of transfers we send to the blockchain
+#[derive(Debug)]
+pub struct Transfers {
+    transfers: TransfersMap,
+    from: PublicKey,
+}
+
+impl Transfers {
+    pub fn new(from: PublicKey) -> Self {
+        Self {
+            transfers: HashMap::new(),
+            from,
+        }
+    }
+
+    pub fn insert_rebalance(&mut self, security: SecurityDefinition, amount: u64, timestamp: u64) {
+        // don't allow rebalance to operate over Cash security
+        if security != SecurityDefinition::Cash {
+            if let Some(vec) = self.transfers.get_mut(&security) {
+                vec.push(Transfer {
+                    from: Some(self.from),
+                    to: Some(security.to_public_key()),
+                    amount,
+                    timestamp,
+                })
+            }
+        }
+    }
+
+    pub fn insert_deposit(&mut self, security: SecurityDefinition, amount: u64, timestamp: u64) {
+        // only operate over cash security
+        if let Some(vec) = self.transfers.get_mut(&SecurityDefinition::Cash) {
+            vec.push(Transfer {
+                from: None,
+                to: Some(security.to_public_key()),
+                amount,
+                timestamp,
+            })
+        }
+    }
+
+    pub fn insert_withdraw(&mut self, amount: u64, timestamp: u64) {
+        // only operate over cash security
+        if let Some(vec) = self.transfers.get_mut(&SecurityDefinition::Cash) {
+            vec.push(Transfer {
+                from: Some(self.from),
+                to: None,
+                amount,
+                timestamp,
+            })
+        }
+    }
+
+    // TODO: Fees
+    pub fn insert_fee(&mut self) {}
+
+    pub fn transfers(self) -> TransfersMap {
+        self.transfers
+    }
+}
 
 /// Parse a json file, convert them to Vec<Transfer>
 pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<Transfers> {
@@ -37,41 +98,28 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Transfers> {
     let json: Value = serde_json::from_slice(bytes.as_ref())?;
 
     if let Value::Object(obj) = json {
-        let mut account = obj.into_iter();
-
-        if let Some((account_name, events)) = account.next() {
+        // the account name and all events are the first key value pairs
+        if let Some((account_name, events)) = obj.into_iter().next() {
             let events: Events = serde_json::from_value(events)?;
-            let mut transfers: Transfers = HashMap::new();
+            let from = public_key(account_name);
+            // Transfers holds all our transfers
+            let mut transfers: Transfers = Transfers::new(from);
 
-            for event in events.events {
+            events.events.into_iter().for_each(|event| {
                 let timestamp = event.occurrence;
 
-                match event.cause {
-                    Cause::Rebalance => {
-                        let from = public_key(&account_name);
+                event.changes.into_iter().for_each(|change| {
+                    let amount = change.size;
+                    let security = change.security_definition;
 
-                        for change in event.changes {
-                            let to = public_key(change.security_definition.to_string());
-                            let amount = change.size;
-
-                            let transfer_list = transfers.get_mut(&SecurityDefinition::Cash);
-
-                            if let Some(vec) = transfer_list {
-                                vec.push(Transfer {
-                                    from,
-                                    to,
-                                    amount,
-                                    timestamp,
-                                })
-                            }
-                        }
+                    match event.cause {
+                        Cause::Rebalance => transfers.insert_rebalance(security, amount, timestamp),
+                        Cause::Deposit => transfers.insert_deposit(security, amount, timestamp),
+                        Cause::Withdraw => transfers.insert_withdraw(amount, timestamp),
+                        Cause::Fee => transfers.insert_fee(),
                     }
-                    // TODO: Finish other causes
-                    Cause::Deposit => (),
-                    Cause::Withdraw => (),
-                    Cause::Fee => (),
-                }
-            }
+                })
+            });
 
             return Ok(transfers);
         }
