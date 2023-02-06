@@ -1,11 +1,9 @@
 #[cfg(test)]
 mod tests;
 
-pub mod address;
 pub mod events;
 pub mod transfer;
 
-pub use self::address::*;
 pub use self::events::*;
 pub use self::transfer::*;
 
@@ -36,23 +34,18 @@ impl Transfers {
         }
     }
 
-    pub fn insert_rebalance(&mut self, security: SecurityDefinition, amount: u64, timestamp: u64) {
-        // don't allow rebalance to operate over Cash security
-        if security != SecurityDefinition::Cash {
-            if let Some(vec) = self.transfers.get_mut(&security) {
-                vec.push(Transfer {
-                    from: Some(self.from),
-                    to: Some(security.to_public_key()),
-                    amount,
-                    timestamp,
-                })
-            }
+    pub fn insert_rebalance(&mut self, security: SecurityDefinition, amount: f32, timestamp: u64) {
+        if amount < 0.0 {
+            self.insert_withdraw(security, -amount, timestamp);
+        } else {
+            self.insert_deposit(security, amount, timestamp);
         }
     }
 
-    pub fn insert_deposit(&mut self, security: SecurityDefinition, amount: u64, timestamp: u64) {
-        // only operate over cash security
-        if let Some(vec) = self.transfers.get_mut(&SecurityDefinition::Cash) {
+    pub fn insert_deposit(&mut self, security: SecurityDefinition, amount: f32, timestamp: u64) {
+        let amount = float2fixed(amount);
+
+        if let Some(vec) = self.transfers.get_mut(&security) {
             vec.push(Transfer {
                 from: None,
                 to: Some(security.to_public_key()),
@@ -62,9 +55,10 @@ impl Transfers {
         }
     }
 
-    pub fn insert_withdraw(&mut self, amount: u64, timestamp: u64) {
-        // only operate over cash security
-        if let Some(vec) = self.transfers.get_mut(&SecurityDefinition::Cash) {
+    pub fn insert_withdraw(&mut self, security: SecurityDefinition, amount: f32, timestamp: u64) {
+        let amount = float2fixed(amount);
+
+        if let Some(vec) = self.transfers.get_mut(&security) {
             vec.push(Transfer {
                 from: Some(self.from),
                 to: None,
@@ -74,8 +68,19 @@ impl Transfers {
         }
     }
 
-    // TODO: Fees
-    pub fn insert_fee(&mut self) {}
+    pub fn insert_fee(&mut self, amount: f32, timestamp: u64) {
+        let amount = float2fixed(amount);
+
+        if let Some(vec) = self.transfers.get_mut(&SecurityDefinition::Cash) {
+            vec.push(Transfer {
+                from: Some(self.from),
+                // TODO: Add the broker here
+                to: Default::default(),
+                amount,
+                timestamp,
+            })
+        }
+    }
 
     pub fn transfers(self) -> TransfersMap {
         self.transfers
@@ -110,13 +115,14 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<Transfers> {
 
                 event.changes.into_iter().for_each(|change| {
                     let amount = change.size;
+
                     let security = change.security_definition;
 
                     match event.cause {
                         Cause::Rebalance => transfers.insert_rebalance(security, amount, timestamp),
                         Cause::Deposit => transfers.insert_deposit(security, amount, timestamp),
-                        Cause::Withdraw => transfers.insert_withdraw(amount, timestamp),
-                        Cause::Fee => transfers.insert_fee(),
+                        Cause::Withdraw => transfers.insert_withdraw(security, amount, timestamp),
+                        Cause::Fee => transfers.insert_fee(amount, timestamp),
                     }
                 })
             });
@@ -134,4 +140,8 @@ fn public_key<T: AsRef<[u8]>>(phrase: T) -> PublicKey {
     let mut seed = StdRng::from_seed(*hash.as_bytes());
     let secret_key = SecretKey::random(&mut seed);
     PublicKey::from(&secret_key)
+}
+
+fn float2fixed(x: f32) -> u64 {
+    (x * 4_294_967_295.0) as u64
 }

@@ -10,12 +10,12 @@ use tai64::Tai64;
 
 use super::public_key;
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Events {
     pub events: Vec<Event>,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Event {
     pub cause: Cause,
     pub changes: Vec<Change>,
@@ -31,19 +31,17 @@ pub enum Cause {
     Fee,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Change {
     #[serde(rename = "type")]
     pub change_type: ChangeType,
-    #[serde(deserialize_with = "to_float_bytes")]
-    pub size: u64,
+    pub size: f32,
     #[serde(rename = "securityDefinition")]
     pub security_definition: SecurityDefinition,
-    #[serde(deserialize_with = "to_float_bytes")]
-    pub price: u64,
+    pub price: f32,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum ChangeType {
     Cash,
     Security,
@@ -85,18 +83,6 @@ impl Display for SecurityDefinition {
 
         write!(f, "{x}")
     }
-}
-
-// We need this because Canon is not implemented for f64
-fn to_float_bytes<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: f64 = Deserialize::deserialize(deserializer)?;
-    // TODO: Find out why I wrote this
-    let x = s * 1000000.0;
-
-    Ok(x as u64)
 }
 
 fn to_tai64_timestamp<'de, D>(deserializer: D) -> Result<u64, D::Error>

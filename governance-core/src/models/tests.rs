@@ -43,33 +43,33 @@ fn json_from_file() {
                             changes: vec![
                                 Change {
                                     change_type: ChangeType::Cash,
-                                    size: ((-99814.8f64) * 1000000.0) as u64,
+                                    size: -99814.8,
                                     security_definition: SecurityDefinition::None,
-                                    price: ((1.0f64) * 1000000.0) as u64,
+                                    price: 1.0,
                                 },
                                 Change {
                                     change_type: ChangeType::Security,
-                                    size: (984.0f64 * 1000000.0) as u64,
+                                    size: 984.0,
                                     security_definition: SecurityDefinition::Tswe,
-                                    price: (25.36f64 * 1000000.0) as u64,
+                                    price: 25.36,
                                 },
                                 Change {
                                     change_type: ChangeType::Security,
-                                    size: (681.0f64 * 1000000.0) as u64,
+                                    size: 681.0,
                                     security_definition: SecurityDefinition::Tret,
-                                    price: (36.65f64 * 1000000.0) as u64,
+                                    price: 36.65,
                                 },
                                 Change {
                                     change_type: ChangeType::Security,
-                                    size: (2131.0f64 * 1000000.0) as u64,
+                                    size: 2131.0,
                                     security_definition: SecurityDefinition::Tgbt,
-                                    price: (11.71f64 * 1000000.0) as u64,
+                                    price: 11.71,
                                 },
                                 Change {
                                     change_type: ChangeType::Security,
-                                    size: (1585.0f64 * 1000000.0) as u64,
+                                    size: 1585.0,
                                     security_definition: SecurityDefinition::Tcbt,
-                                    price: (15.74f64 * 1000000.0) as u64,
+                                    price: 15.74,
                                 }
                             ]
                         }]
