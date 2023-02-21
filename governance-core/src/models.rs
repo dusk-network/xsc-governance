@@ -143,5 +143,6 @@ fn public_key<T: AsRef<[u8]>>(phrase: T) -> PublicKey {
 }
 
 fn float2fixed(x: f32) -> u64 {
+    // 2^32 - 1 = 4_294_967_295
     (x * 4_294_967_295.0) as u64
 }
