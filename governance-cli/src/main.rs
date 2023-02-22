@@ -15,8 +15,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let data = json_file("../assets/data.json")?;
 
-    let contract = Governance::new(data);
-
     let wallet = SecureWallet {
         pwd: cli.password,
         path: WalletPath::from(PathBuf::from(concat!(
@@ -25,7 +23,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ))),
     };
 
-    contract.send_data(wallet).await?;
+    let contract = Governance::new(wallet)?;
+
+    contract.send_data(data).await?;
 
     Ok(())
 }

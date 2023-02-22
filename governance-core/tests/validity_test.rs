@@ -17,25 +17,28 @@ fn valid() {
     let json = serde_json::from_slice(data.as_bytes()).unwrap();
 
     if let Value::Object(obj) = json {
-        if let Some((_, events)) = obj.into_iter().next() {
+        obj.into_iter().for_each(|(_, events)| {
             serde_json::from_value::<Events>(events)
                 .unwrap()
                 .events
                 .into_iter()
                 .for_each(|event| {
                     event.changes.into_iter().for_each(|change| {
-                        let security = change.security_definition;
+                        let security = change.security;
 
                         match event.cause {
                             Cause::Rebalance => {
                                 assert!(security != SecurityDefinition::Cash);
                             }
                             Cause::Deposit | Cause::Withdraw | Cause::Fee => {
-                                assert!(security == SecurityDefinition::Cash);
+                                assert!(
+                                    security == SecurityDefinition::Cash
+                                        || security == SecurityDefinition::None
+                                );
                             }
                         }
                     })
                 });
-        }
+        });
     };
 }

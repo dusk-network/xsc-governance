@@ -1,11 +1,8 @@
-use std::iter;
-
 use canonical_derive::Canon;
-use dusk_bls12_381::BlsScalar;
 use dusk_pki::PublicKey;
 
 // TODO: The same struct exists in the governance contract, do we just import that?
-#[derive(Debug, Clone, PartialEq, Eq, Canon)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Canon)]
 pub struct Transfer {
     pub to: Option<PublicKey>,
     pub from: Option<PublicKey>,
@@ -14,23 +11,39 @@ pub struct Transfer {
 }
 
 impl Transfer {
-    pub fn as_scalars(&self) -> impl Iterator<Item = BlsScalar> {
-        let amount = BlsScalar::from(self.amount);
-        let timestamp = BlsScalar::from(self.timestamp);
+    pub fn new(amount: f32, timestamp: u64) -> Self {
+        let amount = float2fixed(amount);
 
-        let from = self
-            .from
-            .map(|key| key.as_ref().to_hash_inputs())
-            .unwrap_or_default();
-
-        let to = self
-            .to
-            .map(|key| key.as_ref().to_hash_inputs())
-            .unwrap_or_default();
-
-        iter::once(from)
-            .chain(iter::once(to))
-            .chain(iter::once([amount, timestamp]))
-            .flatten()
+        Self {
+            to: None,
+            from: None,
+            amount,
+            timestamp,
+        }
     }
+
+    pub fn amount(&mut self, amount: f32) -> Self {
+        self.amount = float2fixed(amount);
+
+        *self
+    }
+
+    pub fn withdraw(&mut self, from: PublicKey) -> Self {
+        self.from = Some(from);
+        self.to = None;
+
+        *self
+    }
+
+    pub fn deposit(&mut self, to: PublicKey) -> Self {
+        self.to = Some(to);
+        self.from = None;
+
+        *self
+    }
+}
+
+fn float2fixed(x: f32) -> u64 {
+    // 2^32 - 1 = 4_294_967_295
+    (x * 4_294_967_295.0) as u64
 }

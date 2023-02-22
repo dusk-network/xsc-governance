@@ -2,13 +2,9 @@ use std::fmt::{self, Display, Formatter};
 
 use canonical::Canon;
 use canonical_derive::Canon;
-use chrono::DateTime;
-use chrono::Utc;
-use dusk_pki::PublicKey;
+use chrono::prelude::*;
 use serde::{Deserialize, Deserializer};
 use tai64::Tai64;
-
-use super::public_key;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Events {
@@ -37,7 +33,7 @@ pub struct Change {
     pub change_type: ChangeType,
     pub size: f32,
     #[serde(rename = "securityDefinition")]
-    pub security_definition: SecurityDefinition,
+    pub security: SecurityDefinition,
     pub price: f32,
 }
 
@@ -60,12 +56,6 @@ pub enum SecurityDefinition {
     #[serde(rename = "TCBT")]
     Tcbt = 0x1004,
     None = 0x000,
-}
-
-impl SecurityDefinition {
-    pub fn to_public_key(self) -> PublicKey {
-        public_key(self.to_string())
-    }
 }
 
 impl Display for SecurityDefinition {
