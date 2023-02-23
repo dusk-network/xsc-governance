@@ -16,14 +16,6 @@ pub struct TransferMap {
 }
 
 impl TransferMap {
-    pub fn new() -> Self {
-        Self {
-            transfers: HashMap::new(),
-            // None by default, we need to set it manually
-            security: SecurityDefinition::None,
-        }
-    }
-
     pub fn insert_tx(&mut self, tx: Transfer) {
         if let Some((vec, _)) = self.transfers.get_mut(&self.security) {
             vec.push(tx)
@@ -38,5 +30,14 @@ impl TransferMap {
 
     pub fn transfers(self) -> TxHashMap {
         self.transfers
+    }
+}
+
+impl Default for TransferMap {
+    fn default() -> Self {
+        Self {
+            transfers: HashMap::new(),
+            security: SecurityDefinition::None,
+        }
     }
 }

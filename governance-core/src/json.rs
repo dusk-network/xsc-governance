@@ -24,11 +24,10 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
     let json: Value = serde_json::from_slice(bytes.as_ref())?;
 
     if let Value::Object(obj) = json {
-        let mut obj = obj.into_iter();
         // Transfers holds all our transfers
-        let mut map = TransferMap::new();
+        let mut map = TransferMap::default();
         // the account name and all events are the first key value pairs
-        while let Some((account_name, events)) = obj.next() {
+        for (account_name, events) in obj {
             let events: Events = serde_json::from_value(events)?;
             let events = events.events;
             let from = public_key(account_name);
