@@ -22,13 +22,15 @@ pub struct Event {
 #[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
 pub enum Cause {
     Deposit,
-    Withdraw,
+    Withdrawal,
     Rebalance,
     Fee,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Change {
+    #[serde(rename = "accountExternalId")]
+    pub account_external_id: String,
     #[serde(rename = "type")]
     pub change_type: ChangeType,
     pub size: f32,
@@ -41,6 +43,7 @@ pub struct Change {
 pub enum ChangeType {
     Cash,
     Security,
+    Reservation,
 }
 
 // Contract IDs are specified for each Security as they are smart contracts

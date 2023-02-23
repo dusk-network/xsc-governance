@@ -33,6 +33,7 @@ pub struct Governance {
 }
 
 impl Governance {
+    // Create a new Governance instance, loading the config from the file
     pub fn new(wallet: SecureWallet) -> Result<Self, dusk_wallet::Error> {
         Ok(Self {
             config: Config::load()?,
@@ -40,21 +41,25 @@ impl Governance {
         })
     }
 
-    // set a custom config
+    // Set a custom config, by default it loads from the config.toml file
     pub fn with_config(&mut self, config: Config) {
         self.config = config;
     }
 
     /// Data we send to the blockchain
     pub async fn send_data(self, data: TransferMap) -> Result<(), dusk_wallet::Error> {
-        let Config {
-            rusk_address,
-            prover_address,
-            gas_limit,
-            gas_price,
-        } = self.config;
+        let Self {
+            wallet,
+            config:
+                Config {
+                    rusk_address,
+                    prover_address,
+                    gas_limit,
+                    gas_price,
+                },
+        } = self;
 
-        let mut wallet = Wallet::from_file(self.wallet)?;
+        let mut wallet = Wallet::from_file(wallet)?;
         let (_, sec_key) = wallet.provisioner_keys(wallet.default_address())?;
         let transport_tcp = TransportTCP::new(rusk_address, prover_address);
 
@@ -69,13 +74,15 @@ impl Governance {
             let contract_id = ContractId::reserved(contract as u8);
 
             if !transfers.is_empty() {
-                let data = signed_payload(&sec_key, (seed(&transfers), TX_TRANSFER, transfers));
+                let payload = (seed(&transfers), TX_TRANSFER, transfers);
+                let data = signed_payload(&sec_key, payload);
 
                 send(data, &wallet, contract_id, gas_limit, gas_price).await?;
             };
 
             if !fees.is_empty() {
-                let data = signed_payload(&sec_key, (seed(&fees), TX_FEE, fees));
+                let payload = (seed(&fees), TX_FEE, fees);
+                let data = signed_payload(&sec_key, payload);
 
                 send(data, &wallet, contract_id, gas_limit, gas_price).await?;
             }

@@ -30,7 +30,7 @@ fn valid() {
                             Cause::Rebalance => {
                                 assert!(security != SecurityDefinition::Cash);
                             }
-                            Cause::Deposit | Cause::Withdraw | Cause::Fee => {
+                            Cause::Deposit | Cause::Withdrawal | Cause::Fee => {
                                 assert!(
                                     security == SecurityDefinition::Cash
                                         || security == SecurityDefinition::None

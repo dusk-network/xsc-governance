@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::prelude::*;
 
-/// Parse a json file, convert them to Vec<Transfer>
+/// Parse a json file, convert them to a map of Transfers
 pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<TransferMap> {
     let mut data = String::new();
     let f = File::open(path.as_ref())?;
@@ -19,18 +19,19 @@ pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<TransferMap> {
     json_bytes(data.as_bytes())
 }
 
-/// Parse raw json bytes convert them to Vec<Transfer>
+/// Parse raw json bytes convert them to a map of Transfers
 pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
     let json: Value = serde_json::from_slice(bytes.as_ref())?;
 
     if let Value::Object(obj) = json {
+        let mut obj = obj.into_iter();
+        // Transfers holds all our transfers
+        let mut map = TransferMap::new();
         // the account name and all events are the first key value pairs
-        if let Some((account_name, events)) = obj.into_iter().next() {
+        while let Some((account_name, events)) = obj.next() {
             let events: Events = serde_json::from_value(events)?;
             let events = events.events;
             let from = public_key(account_name);
-            // Transfers holds all our transfers
-            let mut transfers = TransferMap::new();
 
             for Event {
                 occurrence,
@@ -44,30 +45,25 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
 
                     let mut tx = Transfer::new(size, occurrence);
                     // set the security of the transfer
-                    transfers.security = security;
-
+                    map.security = security;
                     match cause {
                         Cause::Rebalance => {
                             if size < 0.0 {
                                 tx.amount(-size);
-                                transfers.insert_tx(tx.withdraw(from));
+                                map.insert_tx(tx.withdraw(from));
                             } else {
-                                transfers.insert_tx(tx.deposit(to));
+                                map.insert_tx(tx.deposit(to));
                             }
                         }
-                        Cause::Deposit => {
-                            transfers.insert_tx(tx.deposit(to));
-                        }
-                        Cause::Withdraw => {
-                            transfers.insert_tx(tx.withdraw(from));
-                        }
-                        Cause::Fee => transfers.insert_fee(tx.withdraw(from)),
+                        Cause::Deposit => map.insert_tx(tx.deposit(to)),
+                        Cause::Withdrawal => map.insert_tx(tx.withdraw(from)),
+                        Cause::Fee => map.insert_fee(tx.withdraw(from)),
                     }
                 }
             }
-
-            return Ok(transfers);
         }
+
+        return Ok(map);
     }
 
     Err(IoError::from(IoErrorKind::InvalidData))
@@ -90,6 +86,16 @@ mod test {
     use chrono::{DateTime, Utc};
     use tai64::Tai64;
 
+    fn timestamp(stamp: &str) -> u64 {
+        let timestamp = Tai64::from_unix(
+            DateTime::<Utc>::from_str(stamp)
+                .expect("Cannot convert timestamp to datetime")
+                .timestamp(),
+        );
+
+        timestamp.0
+    }
+
     #[test]
     fn json_from_file() {
         let mut bytes = String::new();
@@ -100,68 +106,127 @@ mod test {
 
         let json: Value = serde_json::from_slice(bytes.as_ref()).expect("error in serialising");
 
-        let timestamp = Tai64::from_unix(
-            DateTime::<Utc>::from_str("2022-09-26T12:00:00Z")
-                .expect("Cannot convert timestamp to datetime")
-                .timestamp(),
-        );
-
         if let Value::Object(obj) = json {
             let mut account = obj.into_iter();
 
-            if let Some(data) = account.next() {
-                let mut events: Events =
-                    serde_json::from_value(data.1).expect("error in serialising");
+            while let Some((name, events)) = account.next() {
+                // check only for Dusk1 account
+                if name == "Dusk1" {
+                    let events: Events =
+                        serde_json::from_value(events).expect("error in serialising");
 
-                // We only deal with deposit for now
-                events.events.remove(0);
-
-                let data = (data.0, events);
-
-                assert_eq!(
-                    data,
-                    (
-                        String::from("TestAccount1"),
+                    assert_eq!(
+                        events,
                         Events {
-                            events: vec![Event {
-                                occurrence: timestamp.0,
-                                cause: Cause::Rebalance,
-                                changes: vec![
-                                    Change {
+                            events: vec![
+                                Event {
+                                    occurrence: timestamp("2022-09-25T10:00:00Z"),
+                                    cause: Cause::Deposit,
+                                    changes: vec![Change {
+                                        account_external_id: String::from("TestAccount1"),
                                         change_type: ChangeType::Cash,
-                                        size: -99814.8,
+                                        size: 100000.0,
                                         security: SecurityDefinition::None,
                                         price: 1.0,
-                                    },
-                                    Change {
-                                        change_type: ChangeType::Security,
-                                        size: 984.0,
-                                        security: SecurityDefinition::Tswe,
-                                        price: 25.36,
-                                    },
-                                    Change {
-                                        change_type: ChangeType::Security,
-                                        size: 681.0,
-                                        security: SecurityDefinition::Tret,
-                                        price: 36.65,
-                                    },
-                                    Change {
-                                        change_type: ChangeType::Security,
-                                        size: 2131.0,
-                                        security: SecurityDefinition::Tgbt,
-                                        price: 11.71,
-                                    },
-                                    Change {
-                                        change_type: ChangeType::Security,
-                                        size: 1585.0,
-                                        security: SecurityDefinition::Tcbt,
-                                        price: 15.74,
-                                    }
-                                ]
-                            }]
+                                    },]
+                                },
+                                Event {
+                                    occurrence: timestamp("2022-09-26T12:00:00Z"),
+                                    cause: Cause::Rebalance,
+                                    changes: vec![
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Cash,
+                                            size: -99814.8,
+                                            security: SecurityDefinition::None,
+                                            price: 1.0,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 984.0,
+                                            security: SecurityDefinition::Tswe,
+                                            price: 25.36,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 681.0,
+                                            security: SecurityDefinition::Tret,
+                                            price: 36.65,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 2131.0,
+                                            security: SecurityDefinition::Tgbt,
+                                            price: 11.71,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 1585.0,
+                                            security: SecurityDefinition::Tcbt,
+                                            price: 15.74,
+                                        }
+                                    ]
+                                },
+                                Event {
+                                    occurrence: timestamp("2023-01-27T14:59:11.439Z"),
+                                    cause: Cause::Deposit,
+                                    changes: vec![Change {
+                                        account_external_id: String::from("TestAccount1"),
+                                        change_type: ChangeType::Cash,
+                                        size: 3000.0,
+                                        security: SecurityDefinition::None,
+                                        price: 1.0,
+                                    },]
+                                },
+                                Event {
+                                    occurrence: timestamp("2023-01-27T15:00:44.117Z"),
+                                    cause: Cause::Rebalance,
+                                    changes: vec![
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: -10.9919,
+                                            security: SecurityDefinition::Tswe,
+                                            price: 27.3,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 30.3859,
+                                            security: SecurityDefinition::Tret,
+                                            price: 37.35,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 57.1205,
+                                            security: SecurityDefinition::Tcbt,
+                                            price: 16.18,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Security,
+                                            size: 95.2472,
+                                            security: SecurityDefinition::Tgbt,
+                                            price: 11.94,
+                                        },
+                                        Change {
+                                            account_external_id: String::from("TestAccount1"),
+                                            change_type: ChangeType::Cash,
+                                            size: -2896.09,
+                                            security: SecurityDefinition::None,
+                                            price: 1.0,
+                                        },
+                                    ]
+                                }
+                            ]
                         }
-                    )
-                )
+                    );
+                }
             }
         }
     }
