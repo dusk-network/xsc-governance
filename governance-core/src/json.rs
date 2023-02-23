@@ -39,7 +39,17 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
                 ..
             } in events
             {
-                for Change { security, size, .. } in changes {
+                for Change {
+                    security,
+                    size,
+                    change_type,
+                    ..
+                } in changes
+                {
+                    if change_type == ChangeType::Reservation {
+                        continue;
+                    }
+
                     let to = public_key(security.to_string());
 
                     let mut tx = Transfer::new(size, occurrence);
