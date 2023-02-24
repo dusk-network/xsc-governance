@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use canonical::Canon;
 use canonical_derive::Canon;
 use chrono::prelude::*;
+use dusk_abi::ContractId;
 use serde::{Deserialize, Deserializer};
 use tai64::Tai64;
 
@@ -59,6 +60,14 @@ pub enum SecurityDefinition {
     #[serde(rename = "TCBT")]
     Tcbt = 0x1004,
     None = 0x000,
+}
+
+impl SecurityDefinition {
+    pub fn to_id(self) -> ContractId {
+        let mut data = [0u8; 32];
+        data[24..].copy_from_slice(&(self as u64).to_be_bytes());
+        ContractId::from(data)
+    }
 }
 
 impl Display for SecurityDefinition {
