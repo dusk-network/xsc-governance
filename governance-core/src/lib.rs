@@ -69,9 +69,9 @@ impl Governance {
 
         assert!(!wallet.is_online(), "Wallet is not online");
 
-        for (contract, (transfers, fees)) in data.transfers() {
+        for (security, (transfers, fees)) in data.transfers() {
             // get contract_id from security
-            let contract_id = ContractId::reserved(contract as u8);
+            let contract_id = security.to_id();
 
             if !transfers.is_empty() {
                 let payload = (seed(&transfers), TX_TRANSFER, transfers);
