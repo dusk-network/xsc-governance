@@ -2,17 +2,17 @@ use std::fmt::{self, Display, Formatter};
 
 use canonical::Canon;
 use canonical_derive::Canon;
-use chrono::DateTime;
-use chrono::Utc;
+use chrono::prelude::*;
+use dusk_abi::ContractId;
 use serde::{Deserialize, Deserializer};
 use tai64::Tai64;
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Events {
     pub events: Vec<Event>,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Event {
     pub cause: Cause,
     pub changes: Vec<Change>,
@@ -23,27 +23,28 @@ pub struct Event {
 #[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
 pub enum Cause {
     Deposit,
-    Withdraw,
+    Withdrawal,
     Rebalance,
     Fee,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Change {
+    #[serde(rename = "accountExternalId")]
+    pub account_external_id: String,
     #[serde(rename = "type")]
     pub change_type: ChangeType,
-    #[serde(deserialize_with = "to_float_bytes")]
-    pub size: u64,
+    pub size: f32,
     #[serde(rename = "securityDefinition")]
-    pub security_definition: SecurityDefinition,
-    #[serde(deserialize_with = "to_float_bytes")]
-    pub price: u64,
+    pub security: SecurityDefinition,
+    pub price: f32,
 }
 
-#[derive(Debug, Clone, Canon, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum ChangeType {
     Cash,
     Security,
+    Reservation,
 }
 
 // Contract IDs are specified for each Security as they are smart contracts
@@ -61,6 +62,14 @@ pub enum SecurityDefinition {
     None = 0x000,
 }
 
+impl SecurityDefinition {
+    pub fn to_id(self) -> ContractId {
+        let mut data = [0u8; 32];
+        data[24..].copy_from_slice(&(self as u64).to_be_bytes());
+        ContractId::from(data)
+    }
+}
+
 impl Display for SecurityDefinition {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         use self::SecurityDefinition::*;
@@ -76,18 +85,6 @@ impl Display for SecurityDefinition {
 
         write!(f, "{x}")
     }
-}
-
-// We need this because Canon is not implemented for f64
-fn to_float_bytes<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: f64 = Deserialize::deserialize(deserializer)?;
-    // TODO: Find out why I wrote this
-    let x = s * 1000000.0;
-
-    Ok(x as u64)
 }
 
 fn to_tai64_timestamp<'de, D>(deserializer: D) -> Result<u64, D::Error>
