@@ -12,6 +12,8 @@ pub mod prelude {
     pub use crate::Governance;
 }
 
+use std::path::PathBuf;
+
 use crate::prelude::*;
 
 use blake2::{digest::consts::U32, Digest};
@@ -34,9 +36,9 @@ pub struct Governance {
 
 impl Governance {
     // Create a new Governance instance, loading the config from the file
-    pub fn new(wallet: SecureWallet) -> Result<Self, dusk_wallet::Error> {
+    pub fn new(wallet: SecureWallet, config: PathBuf) -> Result<Self, dusk_wallet::Error> {
         Ok(Self {
-            config: Config::load()?,
+            config: Config::load_path(config)?,
             wallet,
         })
     }
@@ -67,9 +69,10 @@ impl Governance {
             .connect_with_status(transport_tcp, |s| info!("Status: {}", s))
             .await?;
 
-        assert!(!wallet.is_online(), "Wallet is not online");
+        assert!(wallet.is_online(), "Wallet is not online");
+        let transfers = data.into_transfers();
 
-        for (security, (transfers, fees)) in data.transfers() {
+        for (security, (transfers, fees)) in transfers {
             // get contract_id from security
             let contract_id = security.to_id();
 
@@ -87,8 +90,7 @@ impl Governance {
                 send(data, &wallet, contract_id, gas_limit, gas_price).await?;
             }
         }
-
-        Err(dusk_wallet::Error::WalletFileMissing)
+        Ok(())
     }
 }
 
