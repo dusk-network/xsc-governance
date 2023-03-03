@@ -53,25 +53,22 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
                     let to = public_key(security.to_string());
 
                     let mut tx = Transfer::new(size, occurrence);
-                    // set the security of the transfer
-                    map.security = security;
                     match cause {
                         Cause::Rebalance => {
                             if size < 0.0 {
                                 tx.amount(-size);
-                                map.insert_tx(tx.withdraw(from));
+                                map.insert_tx(security, tx.withdraw(from));
                             } else {
-                                map.insert_tx(tx.deposit(to));
+                                map.insert_tx(security, tx.deposit(to));
                             }
                         }
-                        Cause::Deposit => map.insert_tx(tx.deposit(to)),
-                        Cause::Withdrawal => map.insert_tx(tx.withdraw(from)),
-                        Cause::Fee => map.insert_fee(tx.withdraw(from)),
+                        Cause::Deposit => map.insert_tx(security, tx.deposit(to)),
+                        Cause::Withdrawal => map.insert_tx(security, tx.withdraw(from)),
+                        Cause::Fee => map.insert_fee(security, tx.withdraw(from)),
                     }
                 }
             }
         }
-
         return Ok(map);
     }
 

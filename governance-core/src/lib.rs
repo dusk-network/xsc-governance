@@ -70,8 +70,9 @@ impl Governance {
             .await?;
 
         assert!(!wallet.is_online(), "Wallet is not online");
+        let transfers = data.into_transfers();
 
-        for (security, (transfers, fees)) in data.transfers() {
+        for (security, (transfers, fees)) in transfers {
             // get contract_id from security
             let contract_id = security.to_id();
 

@@ -9,35 +9,29 @@ use std::collections::HashMap;
 /// The first element of the tuple is the deposit transfers and the second is the fee transfers
 pub type TxHashMap = HashMap<SecurityDefinition, (Vec<Transfer>, Vec<Transfer>)>;
 /// List of transfers we send to the blockchain
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TransferMap {
     transfers: TxHashMap,
-    pub security: SecurityDefinition,
 }
 
 impl TransferMap {
-    pub fn insert_tx(&mut self, tx: Transfer) {
-        if let Some((vec, _)) = self.transfers.get_mut(&self.security) {
+    pub fn insert_tx(&mut self, security: SecurityDefinition, tx: Transfer) {
+        if let Some((vec, _)) = self.transfers.get_mut(&security) {
             vec.push(tx)
+        } else {
+            self.transfers.insert(security, (vec![tx], vec![]));
         }
     }
 
-    pub fn insert_fee(&mut self, tx: Transfer) {
-        if let Some((_, vec)) = self.transfers.get_mut(&self.security) {
+    pub fn insert_fee(&mut self, security: SecurityDefinition, tx: Transfer) {
+        if let Some((_, vec)) = self.transfers.get_mut(&security) {
             vec.push(tx)
+        } else {
+            self.transfers.insert(security, (vec![], vec![tx]));
         }
     }
 
-    pub fn transfers(self) -> TxHashMap {
+    pub fn into_transfers(self) -> TxHashMap {
         self.transfers
-    }
-}
-
-impl Default for TransferMap {
-    fn default() -> Self {
-        Self {
-            transfers: HashMap::new(),
-            security: SecurityDefinition::None,
-        }
     }
 }
