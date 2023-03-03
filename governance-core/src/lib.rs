@@ -12,6 +12,8 @@ pub mod prelude {
     pub use crate::Governance;
 }
 
+use std::path::PathBuf;
+
 use crate::prelude::*;
 
 use blake2::{digest::consts::U32, Digest};
@@ -34,9 +36,9 @@ pub struct Governance {
 
 impl Governance {
     // Create a new Governance instance, loading the config from the file
-    pub fn new(wallet: SecureWallet) -> Result<Self, dusk_wallet::Error> {
+    pub fn new(wallet: SecureWallet, config: PathBuf) -> Result<Self, dusk_wallet::Error> {
         Ok(Self {
-            config: Config::load()?,
+            config: Config::load_path(config)?,
             wallet,
         })
     }
