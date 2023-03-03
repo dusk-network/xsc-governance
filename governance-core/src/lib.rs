@@ -69,7 +69,7 @@ impl Governance {
             .connect_with_status(transport_tcp, |s| info!("Status: {}", s))
             .await?;
 
-        assert!(!wallet.is_online(), "Wallet is not online");
+        assert!(wallet.is_online(), "Wallet is not online");
         let transfers = data.into_transfers();
 
         for (security, (transfers, fees)) in transfers {
@@ -90,8 +90,7 @@ impl Governance {
                 send(data, &wallet, contract_id, gas_limit, gas_price).await?;
             }
         }
-
-        Err(dusk_wallet::Error::WalletFileMissing)
+        Ok(())
     }
 }
 
