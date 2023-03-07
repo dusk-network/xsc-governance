@@ -82,18 +82,27 @@ impl Governance {
         let transport_tcp = TransportTCP::new(rusk_address, prover_address);
 
         wallet
-            .connect_with_status(transport_tcp, |s| info!("Status: {}", s))
+            .connect_with_status(transport_tcp, |s| {
+                info!(target: "wallet", "{s}",);
+            })
             .await?;
 
         assert!(wallet.is_online(), "Wallet is not online");
         let transfers = data.into_transfers();
-        let gql = GraphQL::new(graphql_address, |s| info!("Status: {}", s));
+        let gql = GraphQL::new(graphql_address, |s| {
+            tracing::info!(target: "graphql", "{s}",);
+        });
 
         for (security, (transfers, fees)) in transfers {
+            let security_name = security.to_string();
             // get contract_id from security
             let contract_id = security.to_id();
 
             if !transfers.is_empty() {
+                info!(
+                    "Sending {} transfer(s) for {security_name}",
+                    &transfers.len()
+                );
                 let payload = (seed(&transfers), TX_TRANSFER, transfers);
                 let data = signed_payload(&sec_key, payload);
 
@@ -105,6 +114,7 @@ impl Governance {
             };
 
             if !fees.is_empty() {
+                info!("Sending {} fee(s) for {security_name}", &fees.len());
                 let payload = (seed(&fees), TX_FEE, fees);
                 let data = signed_payload(&sec_key, payload);
 
