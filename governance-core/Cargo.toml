@@ -10,6 +10,11 @@ serde = { version = "1", features = ["derive"] }
 tracing = "0.1"
 serde_json = "1.0"
 
+# Network connection
+gql_client = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+
 # Data type helpers
 chrono = { version = "0.4", features = ["serde"] }
 tai64 = "4.0.0"
