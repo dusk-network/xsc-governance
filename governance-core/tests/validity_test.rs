@@ -4,23 +4,14 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use std::fs::File;
-use std::io::{BufReader, Read};
-
 use governance_core::models::*;
 use serde_json::Value;
 
 #[test]
 fn valid() {
-    let path = "../assets/data.json";
+    let bytes = include_bytes!("data.json");
 
-    let mut data = String::new();
-    let f = File::open(path).unwrap();
-
-    let mut reader = BufReader::new(f);
-    reader.read_to_string(&mut data).unwrap();
-
-    let json = serde_json::from_slice(data.as_bytes()).unwrap();
+    let json = serde_json::from_slice(bytes).unwrap();
 
     if let Value::Object(obj) = json {
         obj.into_iter().for_each(|(_, events)| {
