@@ -9,6 +9,7 @@ mod args;
 use crate::args::Args;
 
 use std::error::Error;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use clap::Parser;
 use dusk_wallet::WalletPath;
@@ -24,7 +25,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let cli = Args::parse();
 
-    let data = json_file("../assets/data.json")?;
+    let ts_override = cli.now.then(|| {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64
+    });
+
+    let data = json_file("../assets/data.json", ts_override)?;
     WalletPath::set_cache_dir(&cli.profile)?;
     let wallet_path =
         WalletPath::from(cli.profile.as_path().join("wallet.dat"));
