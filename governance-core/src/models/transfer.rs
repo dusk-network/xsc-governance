@@ -7,7 +7,8 @@
 use canonical_derive::Canon;
 use dusk_pki::PublicKey;
 
-// TODO: The same struct exists in the governance contract, do we just import that?
+// TODO: The same struct exists in the governance contract, do we just import
+// that?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Canon)]
 pub struct Transfer {
     pub to: Option<PublicKey>,

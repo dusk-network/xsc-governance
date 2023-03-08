@@ -20,7 +20,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let data = json_file("../assets/data.json")?;
     WalletPath::set_cache_dir(&cli.profile)?;
-    let wallet_path = WalletPath::from(cli.profile.as_path().join("wallet.dat"));
+    let wallet_path =
+        WalletPath::from(cli.profile.as_path().join("wallet.dat"));
     let config_path = cli.profile.as_path().join("gov_config.toml");
 
     let wallet = SecureWallet {
