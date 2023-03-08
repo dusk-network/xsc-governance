@@ -1,3 +1,9 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) DUSK NETWORK. All rights reserved.
+
 pub mod events;
 pub mod transfer;
 
@@ -6,8 +12,10 @@ pub use self::transfer::*;
 
 use std::collections::HashMap;
 /// Type of the hashmap we use to store our Transfers
-/// The first element of the tuple is the deposit transfers and the second is the fee transfers
-pub type TxHashMap = HashMap<SecurityDefinition, (Vec<Transfer>, Vec<Transfer>)>;
+/// The first element of the tuple is the deposit transfers and the second is
+/// the fee transfers
+pub type TxHashMap =
+    HashMap<SecurityDefinition, (Vec<Transfer>, Vec<Transfer>)>;
 /// List of transfers we send to the blockchain
 #[derive(Debug, Default)]
 pub struct TransferMap {

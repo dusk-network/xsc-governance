@@ -1,3 +1,9 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) DUSK NETWORK. All rights reserved.
+
 // read json data and make sense of it
 pub mod json;
 // config of the backend
@@ -20,7 +26,9 @@ use blake2::{digest::consts::U32, Digest};
 use canonical::{Canon, EncodeToVec, Sink};
 use dusk_abi::ContractId;
 use dusk_bls12_381::BlsScalar;
-use dusk_bls12_381_sign::{PublicKey as BlsPublicKey, SecretKey as BlsSecretKey, Signature};
+use dusk_bls12_381_sign::{
+    PublicKey as BlsPublicKey, SecretKey as BlsSecretKey, Signature,
+};
 use dusk_bytes::Serializable;
 use dusk_wallet::{gas::Gas, TransportTCP, Wallet};
 use toml_base_config::BaseConfig;
@@ -36,7 +44,10 @@ pub struct Governance {
 
 impl Governance {
     // Create a new Governance instance, loading the config from the file
-    pub fn new(wallet: SecureWallet, config: PathBuf) -> Result<Self, dusk_wallet::Error> {
+    pub fn new(
+        wallet: SecureWallet,
+        config: PathBuf,
+    ) -> Result<Self, dusk_wallet::Error> {
         Ok(Self {
             config: Config::load_path(config)?,
             wallet,
@@ -49,7 +60,10 @@ impl Governance {
     }
 
     /// Data we send to the blockchain
-    pub async fn send_data(self, data: TransferMap) -> Result<(), dusk_wallet::Error> {
+    pub async fn send_data(
+        self,
+        data: TransferMap,
+    ) -> Result<(), dusk_wallet::Error> {
         let Self {
             wallet,
             config:
@@ -140,7 +154,8 @@ where
 // generate seed for Transfer
 fn seed(data: &Vec<Transfer>) -> BlsScalar {
     let msg = data.encode_to_vec();
-    let mut digest: [u8; BlsScalar::SIZE] = blake2::Blake2b::<U32>::digest(msg).into();
+    let mut digest: [u8; BlsScalar::SIZE] =
+        blake2::Blake2b::<U32>::digest(msg).into();
 
     // Truncate the contract id to fit bls
     digest[31] &= 0x3f;

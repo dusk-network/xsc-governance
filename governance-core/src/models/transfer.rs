@@ -1,7 +1,14 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// Copyright (c) DUSK NETWORK. All rights reserved.
+
 use canonical_derive::Canon;
 use dusk_pki::PublicKey;
 
-// TODO: The same struct exists in the governance contract, do we just import that?
+// TODO: The same struct exists in the governance contract, do we just import
+// that?
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Canon)]
 pub struct Transfer {
     pub to: Option<PublicKey>,
