@@ -18,4 +18,8 @@ pub struct Args {
     /// Set the password for wallet's creation
     #[clap(long, env = "RUSK_WALLET_PWD")]
     pub password: String,
+
+    /// Use current timestamp instead of the one specified in the input file
+    #[clap(long)]
+    pub now: bool,
 }

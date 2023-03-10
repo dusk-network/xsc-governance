@@ -17,18 +17,24 @@ use serde_json::Value;
 use crate::prelude::*;
 
 /// Parse a json file, convert them to a map of Transfers
-pub fn json_file<T: AsRef<Path>>(path: T) -> io::Result<TransferMap> {
+pub fn json_file<T: AsRef<Path>>(
+    path: T,
+    timestamp: Option<u64>,
+) -> io::Result<TransferMap> {
     let mut data = String::new();
     let f = File::open(path.as_ref())?;
 
     let mut reader = BufReader::new(f);
     reader.read_to_string(&mut data)?;
 
-    json_bytes(data.as_bytes())
+    json_bytes(data.as_bytes(), timestamp)
 }
 
 /// Parse raw json bytes convert them to a map of Transfers
-pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
+pub fn json_bytes<T: AsRef<[u8]>>(
+    bytes: T,
+    timestamp: Option<u64>,
+) -> io::Result<TransferMap> {
     let json: Value = serde_json::from_slice(bytes.as_ref())?;
 
     if let Value::Object(obj) = json {
@@ -64,7 +70,8 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
 
                     let to = public_key(security.to_string());
 
-                    let mut tx = Transfer::new(size, occurrence);
+                    let ts = timestamp.unwrap_or(occurrence);
+                    let mut tx = Transfer::new(size, ts);
                     match cause {
                         Cause::Rebalance => {
                             if size < 0.0 {
