@@ -12,6 +12,7 @@ use toml_base_config::BaseConfig;
 pub struct Config {
     pub rusk_address: String,
     pub prover_address: String,
+    pub graphql_address: String,
     pub gas_limit: u64,
     pub gas_price: Option<u64>,
 }

@@ -48,14 +48,18 @@ pub fn json_bytes<T: AsRef<[u8]>>(bytes: T) -> io::Result<TransferMap> {
             } in events
             {
                 for Change {
-                    security,
+                    mut security,
                     size,
                     change_type,
                     ..
                 } in changes
                 {
-                    if change_type == ChangeType::Reservation {
-                        continue;
+                    match change_type {
+                        ChangeType::Reservation => continue,
+                        ChangeType::Cash => security = SecurityDefinition::Cash,
+                        ChangeType::Security => {
+                            assert!(security != SecurityDefinition::None)
+                        }
                     }
 
                     let to = public_key(security.to_string());

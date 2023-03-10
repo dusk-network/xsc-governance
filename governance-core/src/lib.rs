@@ -11,8 +11,12 @@ pub mod config;
 // types/models for the backend
 pub mod models;
 
+// transaction propagation confirmation
+mod gql;
+
 pub mod prelude {
     pub use crate::config::{Config, SecureWallet};
+    pub use crate::gql::GraphQL;
     pub use crate::json::*;
     pub use crate::models::*;
     pub use crate::Governance;
@@ -60,16 +64,14 @@ impl Governance {
     }
 
     /// Data we send to the blockchain
-    pub async fn send_data(
-        self,
-        data: TransferMap,
-    ) -> Result<(), dusk_wallet::Error> {
+    pub async fn send_data(self, data: TransferMap) -> anyhow::Result<()> {
         let Self {
             wallet,
             config:
                 Config {
                     rusk_address,
                     prover_address,
+                    graphql_address,
                     gas_limit,
                     gas_price,
                 },
@@ -80,28 +82,47 @@ impl Governance {
         let transport_tcp = TransportTCP::new(rusk_address, prover_address);
 
         wallet
-            .connect_with_status(transport_tcp, |s| info!("Status: {}", s))
+            .connect_with_status(transport_tcp, |s| {
+                info!(target: "wallet", "{s}",);
+            })
             .await?;
 
         assert!(wallet.is_online(), "Wallet is not online");
         let transfers = data.into_transfers();
+        let gql = GraphQL::new(graphql_address, |s| {
+            tracing::info!(target: "graphql", "{s}",);
+        });
 
         for (security, (transfers, fees)) in transfers {
+            let security_name = security.to_string();
             // get contract_id from security
             let contract_id = security.to_id();
 
             if !transfers.is_empty() {
+                info!(
+                    "Sending {} transfer(s) for {security_name}",
+                    &transfers.len()
+                );
                 let payload = (seed(&transfers), TX_TRANSFER, transfers);
                 let data = signed_payload(&sec_key, payload);
 
-                send(data, &wallet, contract_id, gas_limit, gas_price).await?;
+                let tx_hash =
+                    send(data, &wallet, contract_id, gas_limit, gas_price)
+                        .await?;
+                let tx_id = format!("{:x}", tx_hash);
+                gql.wait_for(&tx_id).await?;
             };
 
             if !fees.is_empty() {
+                info!("Sending {} fee(s) for {security_name}", &fees.len());
                 let payload = (seed(&fees), TX_FEE, fees);
                 let data = signed_payload(&sec_key, payload);
 
-                send(data, &wallet, contract_id, gas_limit, gas_price).await?;
+                let tx_hash =
+                    send(data, &wallet, contract_id, gas_limit, gas_price)
+                        .await?;
+                let tx_id = format!("{:x}", tx_hash);
+                gql.wait_for(&tx_id).await?;
             }
         }
         Ok(())
@@ -115,7 +136,7 @@ async fn send<C>(
     contract_id: ContractId,
     gas_limit: u64,
     gas_price: Option<u64>,
-) -> Result<(), dusk_wallet::Error>
+) -> Result<BlsScalar, dusk_wallet::Error>
 where
     C: Canon,
 {
@@ -126,9 +147,9 @@ where
     gas.set_price(gas_price);
 
     // finish sending data to blockchain
-    wallet.execute(sender, contract_id, data, gas).await?;
+    let tx = wallet.execute(sender, contract_id, data, gas).await?;
 
-    Ok(())
+    Ok(tx.hash())
 }
 
 // sign the payload before sending to the blockchain

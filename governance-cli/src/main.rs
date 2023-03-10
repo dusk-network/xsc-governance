@@ -13,9 +13,15 @@ use std::error::Error;
 use clap::Parser;
 use dusk_wallet::WalletPath;
 use governance_core::prelude::*;
+use tracing::Level;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let subscriber = tracing_subscriber::fmt::Subscriber::builder()
+        .with_max_level(Level::INFO)
+        .with_writer(std::io::stderr);
+    tracing::subscriber::set_global_default(subscriber.finish())?;
+
     let cli = Args::parse();
 
     let data = json_file("../assets/data.json")?;
